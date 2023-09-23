@@ -147,12 +147,27 @@ def main():
                 cv2.line(valid_frame, old_point, point, (255, 0, 0), 2, cv2.LINE_AA)
                 old_point = point
                 bezier_right_points.append(point)
-                
+            
+            points = bezier_left_points + bezier_right_points
             # Отображение людей на изображении
             for *xyxy, conf, cls in filtered_results:
                 x1, y1, x2, y2 = map(int, xyxy)
-                cv2.rectangle(valid_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                cv2.putText(valid_frame, f'Person {conf:.2f}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+                color = (0, 255, 0)
+                for i, p in enumerate(bezier_left_points):
+                    x3, y3 = p[0], p[1]
+                    d = (x3-x1)*(x3-x1)+(y3-y1)*(y3-y1)
+                    raild = abs([0] - bezier_right_points[i][0])
+                    if d < raild*raild:
+                        color = (0, 0, 255)
+                for i, p in enumerate(bezier_right_points):
+                    x3, y3 = p[0], p[1]
+                    d = (x3-x1)*(x3-x1)+(y3-y1)*(y3-y1)
+                    raild = abs([0] - bezier_left_points[i][0])
+                    if d < raild*raild:
+                        color = (0, 0, 255)
+                cv2.rectangle(valid_frame, (x1, y1), (x2, y2), color, 2)
+                cv2.putText(valid_frame, f'Person {conf:.2f}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
+            
         except IndexError:
             pass
         '''
@@ -166,7 +181,7 @@ def main():
         ]))
         '''
         
-        cv2.imwrite('data/out2/{0:05d}'.format(index)+'.jpg', valid_frame)
+        cv2.imwrite('data/out3/{0:05d}'.format(index)+'.jpg', valid_frame)
         index = index + 1
 #         cv2.imshow('Video', valid_frame)
 #         cv2.waitKey(1)
