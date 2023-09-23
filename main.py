@@ -17,8 +17,14 @@ args = parser.parse_args()
 
 model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
 
+timecodes = set()
+fps = 12
+
 def main():
+    global fps
+    framenumber = 0
     index = 1
+    
     # load video class
     cap = VideoCapture(args.input)
 
@@ -48,6 +54,7 @@ def main():
     prev = 0
     
     while r is True:
+        framenumber = framenumber+1
         r, frame = cap.read()
         if frame is None:
             break
@@ -159,12 +166,14 @@ def main():
                     raild = abs([0] - bezier_right_points[i][0])
                     if d < raild*raild:
                         color = (0, 0, 255)
+                        timecodes.add(framenumber//int(fps))
                 for i, p in enumerate(bezier_right_points):
                     x3, y3 = p[0], p[1]
                     d = (x3-x1)*(x3-x1)+(y3-y1)*(y3-y1)
                     raild = abs([0] - bezier_left_points[i][0])
                     if d < raild*raild:
                         color = (0, 0, 255)
+                        timecodes.add(framenumber//int(fps))
                 cv2.rectangle(valid_frame, (x1, y1), (x2, y2), color, 2)
                 cv2.putText(valid_frame, f'Person {conf:.2f}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
             
@@ -181,20 +190,42 @@ def main():
         ]))
         '''
         
-        cv2.imwrite('data/out3/{0:05d}'.format(index)+'.jpg', valid_frame)
+        # TODO uncommment if you want to get an output video
+        # cv2.imwrite('data/out3/{0:05d}'.format(index)+'.jpg', valid_frame)
         index = index + 1
 #         cv2.imshow('Video', valid_frame)
 #         cv2.waitKey(1)
     print('finish')
-
+    submission = [mt(t) for t in timecodes]
+    submission.sort()
+    for s in submission:
+        print(s)
+        
+def mt(x):
+    a = x//60
+    b = x%60
+    s = ''
+    if a < 10:
+        s = s + '0' + str(a)
+    else:
+        s = s + str(a)
+    s = s + ':'
+    
+    if b < 10:
+        s = s + '0' + str(b)
+    else:
+        s = s + str(b)
+    return s
 
 # class for reading video
 class VideoCapture:
     def __init__(self, path):
+        global fps
         # Using OpenCV to capture from device 0. If you have trouble capturing
         # from a webcam, comment the line below out and use a video file
         # instead.
         self.video = cv2.VideoCapture(path)
+        fps = self.video.get(cv2.CAP_PROP_FPS)
         # If you decide to use video.mp4, you must have this file in the folder
         # as the main.py.
         # self.video = cv2.VideoCapture('video.mp4')
